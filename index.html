@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bible Survey — End of Course Examination</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cinzel:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --gold-dark: #9A7A2E;
+    --parchment: #F9F4EB;
+    --parchment-dark: #EDE3D0;
+    --ink: #1A1208;
+    --ink-medium: #3D2F1A;
+    --ink-light: #6B5740;
+    --crimson: #8B1A1A;
+    --sage: #4A7C59;
+    --cream: #FFFDF7;
+    --shadow: rgba(26,18,8,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'EB Garamond', Georgia, serif;
+    background: var(--parchment);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(201,168,76,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(139,26,26,0.05) 0%, transparent 50%);
+  }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--ink); color: var(--parchment);
+    padding: 0.8rem 1.5rem; border-radius: 8px;
+    font-family: 'Source Sans 3', sans-serif; font-size: 0.9rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease; z-index: 9999;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.error { background: var(--crimson); }
+  #toast.success { background: var(--sage); }
+
+  /* LOADING OVERLAY */
+  #loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(249,244,235,0.85); z-index: 9998;
+    align-items: center; justify-content: center; flex-direction: column; gap: 1rem;
+  }
+  #loading-overlay.show { display: flex; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--parchment-dark);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading-overlay p { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold-dark); }
+
+  /* LANDING */
+  #screen-landing {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 3rem 1rem; text-align: center;
+  }
+  .seal {
+    width: 90px; height: 90px; border: 3px solid var(--gold); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 2rem; font-size: 2.5rem;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--parchment);
+    box-shadow: 0 4px 20px rgba(201,168,76,0.3), inset 0 1px 2px rgba(255,255,255,0.2);
+    animation: sealPulse 3s ease-in-out infinite;
+  }
+  @keyframes sealPulse {
+    0%,100% { box-shadow: 0 4px 20px rgba(201,168,76,0.3); }
+    50% { box-shadow: 0 4px 40px rgba(201,168,76,0.5); }
+  }
+  .landing-subtitle { font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.25em; color: var(--gold-dark); text-transform: uppercase; margin-bottom: 0.5rem; }
+  .landing-title { font-family: 'Cinzel', serif; font-size: clamp(1.8rem,4vw,2.8rem); color: var(--ink); margin-bottom: 0.5rem; line-height: 1.2; }
+  .landing-course { font-size: 1.05rem; color: var(--ink-light); font-style: italic; margin-bottom: 0.25rem; }
+  .landing-instructor { font-size: 0.9rem; color: var(--ink-light); margin-bottom: 2.5rem; }
+  .landing-divider { width: 120px; height: 2px; background: linear-gradient(90deg,transparent,var(--gold),transparent); margin: 0 auto 2.5rem; }
+  .role-cards { display: flex; gap: 1.2rem; flex-wrap: wrap; justify-content: center; max-width: 700px; }
+  .role-card {
+    background: var(--cream); border: 1px solid var(--parchment-dark); border-radius: 12px;
+    padding: 2rem 2.5rem; cursor: pointer; transition: all 0.25s ease;
+    flex: 1; min-width: 200px; max-width: 240px;
+    box-shadow: 0 2px 12px var(--shadow); position: relative; overflow: hidden;
+  }
+  .role-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,var(--gold-dark),var(--gold)); opacity: 0; transition: opacity 0.25s; }
+  .role-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px var(--shadow); }
+  .role-card:hover::before { opacity: 1; }
+  .role-card .icon { font-size: 2.2rem; margin-bottom: 0.75rem; }
+  .role-card h3 { font-family: 'Cinzel', serif; font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem; }
+  .role-card p { font-size: 0.85rem; color: var(--ink-light); font-style: italic; }
+
+  /* SHARED */
+  .page-header {
+    background: linear-gradient(135deg,var(--ink) 0%,var(--ink-medium) 100%);
+    color: var(--parchment); padding: 1.5rem 2rem;
+    display: flex; align-items: center; gap: 1rem;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .page-header h1 { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold-light); }
+  .page-header .back-btn {
+    background: none; border: 1px solid rgba(201,168,76,0.4); color: var(--gold-light);
+    padding: 0.3rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    font-family: 'Source Sans 3', sans-serif; transition: all 0.2s;
+  }
+  .page-header .back-btn:hover { background: rgba(201,168,76,0.15); }
+  .container { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* EXAM */
+  .exam-meta-card {
+    background: var(--cream); border: 1px solid var(--parchment-dark); border-radius: 12px;
+    padding: 1.5rem 2rem; margin-bottom: 2rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  @media(max-width:600px){.exam-meta-card{grid-template-columns:1fr;}}
+  .meta-field label { display: block; font-size: 0.78rem; font-family: 'Source Sans 3', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-light); margin-bottom: 0.3rem; }
+  .meta-field input { width: 100%; border: none; border-bottom: 1px solid var(--parchment-dark); background: transparent; font-family: 'EB Garamond', serif; font-size: 1rem; color: var(--ink); padding: 0.3rem 0; outline: none; transition: border-color 0.2s; }
+  .meta-field input:focus { border-bottom-color: var(--gold); }
+  .section-header {
+    background: var(--ink); color: var(--gold-light); padding: 0.8rem 1.5rem;
+    border-radius: 8px 8px 0 0; font-family: 'Cinzel', serif; font-size: 0.85rem;
+    letter-spacing: 0.08em; display: flex; justify-content: space-between; align-items: center;
+  }
+  .marks-badge { background: var(--gold-dark); color: var(--parchment); padding: 0.2rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-family: 'Source Sans 3', sans-serif; }
+  .section-body {
+    background: var(--cream); border: 1px solid var(--parchment-dark); border-top: none;
+    border-radius: 0 0 8px 8px; padding: 1.5rem 2rem 2rem; margin-bottom: 2rem;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .section-instructions { font-style: italic; font-size: 0.9rem; color: var(--ink-light); margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--parchment-dark); }
+  .question-block { margin-bottom: 1.8rem; }
+  .question-block:last-child { margin-bottom: 0; }
+  .question-text { font-size: 1rem; color: var(--ink); margin-bottom: 0.8rem; line-height: 1.6; }
+  .question-num { font-family: 'Cinzel', serif; font-weight: 600; color: var(--gold-dark); }
+  .mcq-options { display: flex; flex-direction: column; gap: 0.5rem; }
+  .mcq-option {
+    display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0.9rem;
+    border: 1px solid var(--parchment-dark); border-radius: 8px; cursor: pointer;
+    transition: all 0.18s; background: var(--parchment);
+  }
+  .mcq-option:hover { border-color: var(--gold); background: rgba(201,168,76,0.05); }
+  .mcq-option input[type="radio"] { margin-top: 2px; accent-color: var(--gold-dark); flex-shrink: 0; }
+  .mcq-option label { font-size: 0.95rem; cursor: pointer; line-height: 1.5; }
+  .mcq-option.selected { border-color: var(--gold); background: rgba(201,168,76,0.08); }
+  .tf-options { display: flex; gap: 0.75rem; }
+  .tf-btn {
+    flex: 1; padding: 0.6rem; border: 1px solid var(--parchment-dark); border-radius: 8px;
+    background: var(--parchment); cursor: pointer; font-family: 'EB Garamond', serif;
+    font-size: 1rem; color: var(--ink); transition: all 0.18s; text-align: center;
+  }
+  .tf-btn:hover { border-color: var(--gold); }
+  .tf-btn.selected { border-color: var(--gold); background: rgba(201,168,76,0.1); font-weight: 600; }
+  .essay-area {
+    width: 100%; min-height: 120px; border: 1px solid var(--parchment-dark); border-radius: 8px;
+    padding: 0.9rem 1rem; font-family: 'EB Garamond', serif; font-size: 1rem; color: var(--ink);
+    background: var(--parchment); resize: vertical; outline: none; transition: border-color 0.2s; line-height: 1.7;
+  }
+  .essay-area:focus { border-color: var(--gold); }
+  .passage-box {
+    background: var(--parchment-dark); border-left: 3px solid var(--gold);
+    padding: 1.2rem 1.5rem; margin-bottom: 1.5rem; border-radius: 0 8px 8px 0;
+    font-style: italic; font-size: 0.95rem; line-height: 1.7;
+  }
+  .passage-box .ref { font-family: 'Cinzel', serif; font-style: normal; font-size: 0.8rem; color: var(--gold-dark); margin-bottom: 0.5rem; }
+  .sub-question { margin-left: 1.2rem; margin-top: 1.2rem; }
+  .sub-label { font-weight: 600; color: var(--gold-dark); font-family: 'Cinzel', serif; font-size: 0.88rem; margin-bottom: 0.5rem; }
+  .marks-note { font-size: 0.8rem; color: var(--ink-light); font-style: italic; }
+  .submit-btn {
+    display: block; width: 100%; max-width: 320px; margin: 2rem auto 0;
+    background: linear-gradient(135deg,var(--gold-dark),var(--gold)); color: var(--ink);
+    border: none; padding: 1rem 2rem; border-radius: 10px;
+    font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: all 0.25s; box-shadow: 0 4px 15px rgba(201,168,76,0.3); letter-spacing: 0.05em;
+  }
+  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(201,168,76,0.4); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* TEACHER */
+  .teacher-login-card {
+    max-width: 400px; margin: 4rem auto; background: var(--cream);
+    border: 1px solid var(--parchment-dark); border-radius: 12px; padding: 2.5rem;
+    box-shadow: 0 4px 20px var(--shadow); text-align: center;
+  }
+  .teacher-login-card h2 { font-family: 'Cinzel', serif; margin-bottom: 0.5rem; }
+  .teacher-login-card p { font-style: italic; color: var(--ink-light); margin-bottom: 2rem; font-size: 0.9rem; }
+  .form-field { margin-bottom: 1rem; text-align: left; }
+  .form-field label { display: block; font-size: 0.78rem; font-family: 'Source Sans 3', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-light); margin-bottom: 0.4rem; }
+  .form-field input { width: 100%; border: 1px solid var(--parchment-dark); border-radius: 8px; padding: 0.6rem 0.9rem; font-family: 'EB Garamond', serif; font-size: 1rem; background: var(--parchment); outline: none; transition: border-color 0.2s; }
+  .form-field input:focus { border-color: var(--gold); }
+  .error-msg { color: var(--crimson); font-size: 0.85rem; margin-top: 0.5rem; font-style: italic; }
+  .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+  .tab-btn { flex: 1; padding: 0.7rem; border: 1px solid var(--parchment-dark); border-radius: 8px; background: var(--cream); font-family: 'Cinzel', serif; font-size: 0.8rem; color: var(--ink-light); cursor: pointer; transition: all 0.2s; }
+  .tab-btn.active { background: var(--ink); color: var(--gold-light); border-color: var(--ink); }
+  .submissions-list { display: flex; flex-direction: column; gap: 1rem; }
+  .submission-card {
+    background: var(--cream); border: 1px solid var(--parchment-dark); border-radius: 10px;
+    padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px var(--shadow); flex-wrap: wrap; gap: 0.75rem;
+  }
+  .submission-card .student-info h3 { font-family: 'Cinzel', serif; font-size: 1rem; }
+  .submission-card .student-info p { font-size: 0.85rem; color: var(--ink-light); font-style: italic; }
+  .score-pill { padding: 0.3rem 1rem; border-radius: 20px; font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 0.85rem; }
+  .score-pill.pending { background: rgba(201,168,76,0.15); color: var(--gold-dark); border: 1px solid var(--gold); }
+  .score-pill.graded { background: rgba(74,124,89,0.12); color: var(--sage); border: 1px solid var(--sage); }
+  .btn-grade { background: var(--ink); color: var(--gold-light); border: none; padding: 0.5rem 1.2rem; border-radius: 8px; font-family: 'Source Sans 3', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+  .btn-grade:hover { background: var(--ink-medium); }
+
+  /* GRADING */
+  .grading-section { margin-bottom: 2rem; }
+  .grading-section h3 { font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--gold-dark); text-transform: uppercase; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--parchment-dark); }
+  .grade-row { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.2rem; background: var(--parchment); border-radius: 8px; padding: 1rem; }
+  .grade-row .q-text { flex: 1; font-size: 0.92rem; line-height: 1.5; }
+  .grade-row .student-answer { font-style: italic; color: var(--ink-medium); margin-top: 0.4rem; font-size: 0.9rem; white-space: pre-wrap; }
+  .auto-result { font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 4px; margin-top: 0.3rem; display: inline-block; }
+  .auto-result.correct { background: rgba(74,124,89,0.15); color: var(--sage); }
+  .auto-result.incorrect { background: rgba(139,26,26,0.12); color: var(--crimson); }
+  .mark-input-group { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; min-width: 110px; }
+  .mark-input-group label { font-size: 0.75rem; font-family: 'Source Sans 3', sans-serif; color: var(--ink-light); }
+  .mark-input { width: 70px; text-align: center; border: 1px solid var(--parchment-dark); border-radius: 6px; padding: 0.4rem; font-family: 'EB Garamond', serif; font-size: 1rem; background: var(--cream); outline: none; transition: border-color 0.2s; }
+  .mark-input:focus { border-color: var(--gold); }
+  .max-marks { font-size: 0.78rem; color: var(--ink-light); }
+  .feedback-area { width: 100%; border: 1px solid var(--parchment-dark); border-radius: 6px; padding: 0.5rem 0.75rem; font-family: 'EB Garamond', serif; font-size: 0.9rem; background: var(--cream); resize: vertical; min-height: 60px; outline: none; margin-top: 0.5rem; }
+  .feedback-area:focus { border-color: var(--gold); }
+  .total-score-bar {
+    background: var(--ink); color: var(--parchment); padding: 1.2rem 2rem; border-radius: 10px;
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .total-score-bar .label { font-family: 'Cinzel', serif; font-size: 0.9rem; color: var(--gold-light); }
+  .total-score-bar .score-display { font-family: 'Cinzel', serif; font-size: 1.8rem; color: var(--gold); }
+  .save-grades-btn { background: linear-gradient(135deg,var(--sage),#3a6647); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; font-family: 'Cinzel', serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; margin-right: 1rem; }
+  .save-grades-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .save-grades-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* RESULTS */
+  .results-hero { background: var(--ink); border-radius: 12px; padding: 2.5rem; text-align: center; margin-bottom: 2rem; position: relative; overflow: hidden; }
+  .results-hero::before { content: '✦'; position: absolute; font-size: 8rem; color: rgba(201,168,76,0.05); top: -2rem; left: -2rem; }
+  .results-hero h2 { font-family: 'Cinzel', serif; color: var(--gold-light); font-size: 1.2rem; margin-bottom: 1rem; }
+  .results-hero .score-big { font-family: 'Cinzel', serif; font-size: 4rem; color: var(--gold); line-height: 1; }
+  .results-hero .score-label { color: var(--parchment); font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.7; }
+  .grade-badge { display: inline-block; margin-top: 1rem; padding: 0.5rem 1.5rem; border-radius: 20px; font-family: 'Cinzel', serif; font-size: 1.1rem; }
+  .grade-A { background: rgba(74,124,89,0.3); color: #7BC89A; border: 1px solid rgba(74,124,89,0.5); }
+  .grade-B { background: rgba(201,168,76,0.2); color: var(--gold-light); border: 1px solid rgba(201,168,76,0.4); }
+  .grade-C { background: rgba(100,100,200,0.2); color: #9AA4E8; border: 1px solid rgba(100,100,200,0.3); }
+  .grade-F { background: rgba(139,26,26,0.2); color: #E88A8A; border: 1px solid rgba(139,26,26,0.3); }
+  .results-breakdown { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2rem; }
+  @media(max-width:600px){.results-breakdown{grid-template-columns:1fr;}}
+  .breakdown-card { background: var(--cream); border: 1px solid var(--parchment-dark); border-radius: 10px; padding: 1.2rem; text-align: center; }
+  .breakdown-card .section-name { font-family: 'Cinzel', serif; font-size: 0.75rem; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+  .breakdown-card .section-score { font-size: 1.6rem; font-family: 'Cinzel', serif; color: var(--ink); }
+  .breakdown-card .section-max { font-size: 0.85rem; color: var(--ink-light); }
+  .feedback-section { background: var(--cream); border: 1px solid var(--parchment-dark); border-radius: 10px; padding: 1.5rem 2rem; }
+  .feedback-section h3 { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold-dark); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
+  .feedback-item { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--parchment-dark); }
+  .feedback-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .feedback-item .q-ref { font-family: 'Source Sans 3', sans-serif; font-size: 0.8rem; font-weight: 600; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.06em; }
+  .feedback-item .fb-text { font-style: italic; margin-top: 0.3rem; }
+  .lookup-card { max-width: 420px; margin: 3rem auto; background: var(--cream); border: 1px solid var(--parchment-dark); border-radius: 12px; padding: 2.5rem; text-align: center; box-shadow: 0 4px 20px var(--shadow); }
+  .lookup-card h2 { font-family: 'Cinzel', serif; margin-bottom: 0.5rem; }
+  .lookup-card p { font-style: italic; color: var(--ink-light); font-size: 0.9rem; margin-bottom: 2rem; }
+  .pending-notice { background: rgba(201,168,76,0.08); border: 1px solid var(--gold); border-radius: 10px; padding: 1.5rem 2rem; text-align: center; margin: 2rem 0; }
+  .pending-notice h3 { font-family: 'Cinzel', serif; color: var(--gold-dark); margin-bottom: 0.5rem; }
+  .empty-state { text-align: center; padding: 4rem 2rem; color: var(--ink-light); font-style: italic; }
+  .empty-state .big-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+  .progress-bar-wrap { background: var(--parchment-dark); border-radius: 4px; height: 4px; margin-bottom: 2rem; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg,var(--gold-dark),var(--gold)); transition: width 0.3s ease; }
+  .soli-deo { text-align: center; font-style: italic; color: var(--ink-light); font-size: 0.85rem; margin-top: 3rem; padding-top: 1.5rem; border-bottom: 1px solid var(--parchment-dark); }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--parchment); }
+  ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+<!-- LOADING -->
+<div id="loading-overlay"><div class="spinner"></div><p id="loading-text">Loading…</p></div>
+
+<!-- ===== LANDING ===== -->
+<div id="screen-landing" class="screen active">
+  <div class="seal">✦</div>
+  <div class="landing-subtitle">Weeks 1–3 · Bible Study and Approach</div>
+  <h1 class="landing-title">Bible Survey</h1>
+  <p class="landing-course">End of Course Examination</p>
+  <p class="landing-instructor">Instructor: Pastor Teju Faith &nbsp;·&nbsp; Total Marks: 100</p>
+  <div class="landing-divider"></div>
+  <div class="role-cards">
+    <div class="role-card" onclick="goTo('screen-student')">
+      <div class="icon">📖</div>
+      <h3>Student</h3>
+      <p>Take the examination</p>
+    </div>
+    <div class="role-card" onclick="goTo('screen-teacher-login')">
+      <div class="icon">✒️</div>
+      <h3>Instructor</h3>
+      <p>Mark & grade submissions</p>
+    </div>
+    <div class="role-card" onclick="goTo('screen-results-lookup')">
+      <div class="icon">🎓</div>
+      <h3>Results</h3>
+      <p>View your score</p>
+    </div>
+  </div>
+  <p class="soli-deo">Soli Deo Gloria</p>
+</div>
+
+<!-- ===== STUDENT EXAM ===== -->
+<div id="screen-student" class="screen">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('screen-landing')">← Back</button>
+    <h1>Bible Survey Examination</h1>
+  </div>
+  <div class="container">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="exam-meta-card">
+      <div class="meta-field"><label>Student Name</label><input type="text" id="s-name" placeholder="Enter your full name"></div>
+      <div class="meta-field"><label>Date</label><input type="text" id="s-date" readonly></div>
+      <div class="meta-field"><label>Instructor</label><input type="text" value="Pastor Teju Faith" readonly></div>
+      <div class="meta-field"><label>Total Marks</label><input type="text" value="100 marks" readonly></div>
+    </div>
+    <div class="section-header"><span>SECTION A — OBJECTIVE</span><span class="marks-badge">50 marks</span></div>
+    <div class="section-body">
+      <div class="section-instructions">Part 1: Multiple Choice — Choose the ONE best answer. (2 marks each = 40 marks)<br>Part 2: True or False — Circle TRUE or FALSE. (1 mark each = 10 marks)</div>
+      <p style="font-family:'Cinzel',serif;font-size:0.82rem;color:var(--gold-dark);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;">Part 1: Multiple Choice</p>
+      <div id="mcq-container"></div>
+      <p style="font-family:'Cinzel',serif;font-size:0.82rem;color:var(--gold-dark);text-transform:uppercase;letter-spacing:0.08em;margin:2rem 0 1rem;">Part 2: True or False</p>
+      <div id="tf-container"></div>
+    </div>
+    <div class="section-header"><span>SECTION B — THEORY</span><span class="marks-badge">30 marks</span></div>
+    <div class="section-body">
+      <div class="section-instructions">Answer ALL questions. Cite relevant Bible references where applicable.</div>
+      <div id="theory-container"></div>
+    </div>
+    <div class="section-header"><span>SECTION C — PRACTICAL</span><span class="marks-badge">20 marks</span></div>
+    <div class="section-body">
+      <div class="section-instructions">Tests your ability to apply what you have learned.</div>
+      <div id="practical-container"></div>
+    </div>
+    <button class="submit-btn" id="submit-btn" onclick="submitExam()">Submit Examination</button>
+    <div class="soli-deo">Soli Deo Gloria</div>
+  </div>
+</div>
+
+<!-- ===== TEACHER LOGIN ===== -->
+<div id="screen-teacher-login" class="screen">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('screen-landing')">← Back</button>
+    <h1>Instructor Access</h1>
+  </div>
+  <div class="container">
+    <div class="teacher-login-card">
+      <h2>Instructor Portal</h2>
+      <p>Enter the password to access student submissions.</p>
+      <div class="form-field">
+        <label>Password</label>
+        <input type="password" id="teacher-password" placeholder="Enter password" onkeydown="if(event.key==='Enter')teacherLogin()">
+      </div>
+      <p class="error-msg" id="login-error" style="display:none">Incorrect password. Try again.</p>
+      <button class="submit-btn" onclick="teacherLogin()" style="max-width:100%;margin-top:1rem;">Access Portal</button>
+      <p style="font-size:0.78rem;color:var(--ink-light);margin-top:1rem;font-style:italic;">Default password: <strong>pastor123</strong></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TEACHER DASHBOARD ===== -->
+<div id="screen-teacher-dashboard" class="screen">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('screen-landing')">← Sign Out</button>
+    <h1>Instructor Dashboard</h1>
+  </div>
+  <div class="container">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-ungraded" onclick="switchTab('ungraded')">Ungraded</button>
+      <button class="tab-btn" id="tab-graded" onclick="switchTab('graded')">Graded</button>
+    </div>
+    <div id="submissions-list" class="submissions-list"></div>
+  </div>
+</div>
+
+<!-- ===== GRADING ===== -->
+<div id="screen-grading" class="screen">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('screen-teacher-dashboard')">← Dashboard</button>
+    <h1>Grading Submission</h1>
+  </div>
+  <div class="container">
+    <div id="grading-content"></div>
+    <div style="margin-top:2rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;">
+      <button class="save-grades-btn" id="save-btn" onclick="saveGrades()">✓ Save & Publish Grades</button>
+      <button class="back-btn" style="color:var(--ink-light);border-color:var(--parchment-dark)" onclick="goTo('screen-teacher-dashboard')">Cancel</button>
+    </div>
+    <div class="soli-deo">Soli Deo Gloria</div>
+  </div>
+</div>
+
+<!-- ===== RESULTS LOOKUP ===== -->
+<div id="screen-results-lookup" class="screen">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('screen-landing')">← Back</button>
+    <h1>View Results</h1>
+  </div>
+  <div class="container">
+    <div class="lookup-card">
+      <h2>Find Your Results</h2>
+      <p>Enter the name you used when taking the exam.</p>
+      <div class="form-field" style="text-align:left">
+        <label>Student Name</label>
+        <input type="text" id="lookup-name" placeholder="Your full name" onkeydown="if(event.key==='Enter')lookupResults()">
+      </div>
+      <button class="submit-btn" onclick="lookupResults()" style="max-width:100%;margin-top:0.5rem;">Find Results</button>
+      <p class="error-msg" id="lookup-error" style="display:none;margin-top:0.75rem;">No submission found for that name.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RESULTS VIEW ===== -->
+<div id="screen-results-view" class="screen">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('screen-results-lookup')">← Back</button>
+    <h1>Your Results</h1>
+  </div>
+  <div class="container" id="results-content"></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// SUPABASE CONFIG
+// ─────────────────────────────────────────
+const SUPABASE_URL = 'https://znducxvaeihkqkfcaffe.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZHVjeHZhZWloa3FrZmNhZmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDE1MjIsImV4cCI6MjA4ODAxNzUyMn0.VOOvTtBYbEgcHV9Djxkz60SRzV_geqegtdJ2r1_qC_o';
+
+const headers = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY
+};
+
+async function dbGetAll() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions?select=*&order=date.desc`, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+async function dbGetByName(name) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions?name=ilike.${encodeURIComponent(name)}&select=*`, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+async function dbInsert(row) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
+    method: 'POST', headers: { ...headers, 'Prefer': 'return=representation' },
+    body: JSON.stringify(row)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+async function dbUpdate(id, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions?id=eq.${id}`, {
+    method: 'PATCH', headers: { ...headers, 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// ─────────────────────────────────────────
+// EXAM DATA
+// ─────────────────────────────────────────
+const MCQ = [
+  { q:"Which of the following best describes what the Bible is?", opts:["A collection of human wisdom and moral philosophy","A divinely inspired, humanly written revelation of God's redemptive plan","A scientific and historical record of ancient Israel","A political document for governing God's people"], ans:1 },
+  { q:"According to 2 Timothy 3:16, Scripture is described as:", opts:["Breathed out by God and profitable for teaching, reproof, correction, and training","Written by apostles under their own authority and wisdom","Useful only for spiritual encouragement and personal comfort","A record of what prophets imagined about God"], ans:0 },
+  { q:"The correct order of how the Bible came to us is:", opts:["Canon Recognition, Inspiration, Writing, Transmission","Writing, Canon Recognition, Revelation, Transmission","Transmission, Inspiration, Writing, Revelation","Revelation, Inspiration, Writing, Transmission, Canon Recognition"], ans:3 },
+  { q:"The canon of Scripture was recognized by the early Church based on which criteria?", opts:["The age of the manuscript and its literary quality","The personal opinion of the Roman Emperor Constantine","Apostolic authority, doctrinal consistency, widespread acceptance, and evidence of divine inspiration","The number of times it was quoted by church leaders"], ans:2 },
+  { q:"The first five books of the Bible are collectively known as:", opts:["The Historical Books","The Pentateuch or Law","The Major Prophets","The Wisdom Books"], ans:1 },
+  { q:"Which section of the Old Testament includes books like Job, Psalms, and Proverbs?", opts:["Wisdom and Poetry","The Law","The Minor Prophets","Historical Books"], ans:0 },
+  { q:"The New Testament section that records the expansion of the early Church and the spread of the gospel is:", opts:["The Epistles","The Gospels","Revelation","The Acts of the Apostles"], ans:3 },
+  { q:"What is the central theological theme that unifies the entire Bible from Genesis to Revelation?", opts:["The history of the nation of Israel","The development of moral and ethical laws","God's redemptive plan fulfilled in Jesus Christ","The geographical story of the Promised Land"], ans:2 },
+  { q:"Genesis 3:15, which speaks of the seed of the woman crushing the serpent's head, is theologically significant because:", opts:["It explains the origin of conflict between humans and animals","It is the first promise of a coming Redeemer, pointing forward to Christ","It is a curse placed only on the serpent with no further meaning","It describes the beginning of agricultural civilisation"], ans:1 },
+  { q:"The covenant God made with Abraham in Genesis 12 and 15 included which promise?", opts:["Land, descendants, and blessing to all nations","A permanent earthly kingdom ruled by Abraham","Deliverance from Egypt and the giving of the Law","The promise of the Holy Spirit for all believers"], ans:0 },
+  { q:"According to 1 Corinthians 15:3-4, what is the core content of the gospel?", opts:["Love your neighbour as yourself and observe the Sabbath","Follow the teachings of Jesus and the apostles faithfully","Christ died for our sins, was buried, and rose again on the third day","Repent of sin and be baptised for the forgiveness of sins"], ans:2 },
+  { q:"The purpose of the Mosaic Law in the Old Testament is best understood as:", opts:["A means of earning salvation through strict obedience","A temporary set of rules that have no relevance today","A legal code only for the nation of Israel with no theological meaning","A revelation of God's holiness that exposes sin and points humanity toward grace and Christ"], ans:3 },
+  { q:"The term 'Christocentric' when applied to Scripture means:", opts:["The Bible was written exclusively by Christians for Christians","Christ is the centre and interpretive key to all of Scripture","Only the New Testament is relevant for Christian living","The Gospels are more authoritative than the rest of the Bible"], ans:1 },
+  { q:"In Luke 24:27, what did Jesus do on the road to Emmaus?", opts:["Interpreted to the disciples the things concerning Himself in all the Scriptures","Explained the political situation in Jerusalem after His resurrection","Taught them how to pray using the Lord's Prayer","Gave them instructions for establishing the Church"], ans:0 },
+  { q:"What does the book of Revelation primarily present?", opts:["A chronological timeline of modern world events","A literal description of future wars between nations","The reign of Christ, the judgment of evil, and the coming of the new creation","A vision given to John about the destruction of Rome only"], ans:2 },
+  { q:"Which of the following is NOT a legitimate description of what the Bible is?", opts:["The norming authority for Christian faith and practice","Fully divine in authority and fully human in expression","A revelation of God making Himself known","A scientific manual and political manifesto for running nations"], ans:3 },
+  { q:"The view called Marcionism, which the Bible Survey course warned against, involves:", opts:["Reading the New Testament without any knowledge of Greek","Rejecting the Old Testament as irrelevant or contrary to the New Testament","Interpreting all Scripture through a strictly literal lens","Treating the Psalms as more authoritative than the Epistles"], ans:1 },
+  { q:"Acts 1:8 summarises the mission of the Church as:", opts:["Building church buildings in every city and nation","Preaching only to the Jewish people until Christ returns","Being witnesses in Jerusalem, Judea, Samaria, and to the ends of the earth","Performing signs and wonders to confirm the gospel message"], ans:2 },
+  { q:"The doctrine of justification by faith, explained in Romans 3:21-26, means:", opts:["A person is declared righteous before God through faith in Jesus Christ, apart from works of the Law","A person becomes holy over time through prayer and obedience to God's commands","God accepts all people regardless of their belief because He is loving","Salvation is available only to those born into a Christian family"], ans:0 },
+  { q:"The redemptive storyline of the Bible can be summarised in which sequence?", opts:["Law, Promise, Creation, Fall, Covenant, Church, Cross, Consummation","Incarnation, Creation, Fall, Church, Cross, Resurrection, Consummation","Promise, Fall, Kingdom, Cross, Creation, Exile, Resurrection","Creation, Fall, Promise, Covenant, Incarnation, Cross, Resurrection, Church, Consummation"], ans:3 },
+];
+
+const TF = [
+  { q:"The original autographs (first written manuscripts) of the Bible still exist in museums today.", ans:false },
+  { q:"The New Testament contains four sections: Gospels, Acts, Epistles, and Revelation.", ans:true },
+  { q:"Paul invented the Christian faith and significantly changed the message that Jesus originally taught.", ans:false },
+  { q:"The Old Testament anticipates Christ through promise, type, and prophecy.", ans:true },
+  { q:"Expository Bible study means starting with a topic and assembling verses that support your pre-formed conclusion.", ans:false },
+  { q:"Inductive Bible study follows three movements: Observe, Interpret, and Apply.", ans:true },
+  { q:"The word 'therefore' in Romans 8:1 can be ignored because it is just a transition word with no theological weight.", ans:false },
+  { q:"Context in Bible study includes historical, cultural, literary, and redemptive-historical dimensions.", ans:true },
+  { q:"The main point (exegetical idea) of a passage is a list of all the themes present in that passage.", ans:false },
+  { q:"God is not tribal but universal, and the Old Testament ultimately serves His purpose for all nations.", ans:true },
+];
+
+const THEORY = [
+  { num:"B1", marks:6, q:"Define 'biblical inspiration' in your own words. Using 2 Timothy 3:16 and 2 Peter 1:21 as your basis, explain what it means that Scripture is 'breathed out by God' and yet written through human authors." },
+  { num:"B2", marks:8, q:"Explain the difference between the Old Testament and the New Testament in terms of their roles in the redemptive story of God. How does the Old Testament prepare for and point to what the New Testament declares? Give at least two specific examples from Scripture." },
+  { num:"B3", marks:8, q:"What is the 'Redemptive Thread' or 'Big Story' of the Bible? Trace the storyline from Creation to Consummation in your own words, identifying at least five key stages." },
+  { num:"B4", marks:4, q:"State three criteria by which the canon of Scripture was recognised by the early Church. Why does it matter that the canon was 'recognised' rather than 'invented'?" },
+  { num:"B5", marks:4, q:"Some critics argue that God in the Old Testament appears harsh and tribal, in contrast to the loving God of the New Testament. How would you respond to this objection using what you have learned in Bible Survey?" },
+];
+
+const PRACTICAL_C1 = [
+  { sub:"a", marks:2, q:"Identify ONE key connecting word or phrase in this passage and explain why it is significant." },
+  { sub:"b", marks:2, q:"In one sentence, state the main theological claim (exegetical idea) that this passage is making." },
+  { sub:"c", marks:2, q:"How does this passage connect to the broader redemptive storyline you studied in Bible Survey? Where does it fit in the sequence from Creation to Consummation?" },
+  { sub:"d", marks:2, q:"Give ONE practical application from this passage for a Christian living today." },
+];
+
+// ─────────────────────────────────────────
+// UI HELPERS
+// ─────────────────────────────────────────
+const TEACHER_PASSWORD = 'pastor123';
+let currentGradingId = null;
+let teacherTab = 'ungraded';
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = type ? `show ${type}` : 'show';
+  setTimeout(() => t.className = '', 3500);
+}
+function showLoading(msg='Loading…') {
+  document.getElementById('loading-text').textContent = msg;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screen-student') initExam();
+  if (id === 'screen-teacher-dashboard') renderDashboard();
+  window.scrollTo(0,0);
+}
+
+// ─────────────────────────────────────────
+// EXAM RENDER
+// ─────────────────────────────────────────
+function initExam() {
+  document.getElementById('s-date').value = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  renderMCQ(); renderTF(); renderTheory(); renderPractical(); updateProgress();
+}
+
+function renderMCQ() {
+  document.getElementById('mcq-container').innerHTML = MCQ.map((q,i) => `
+    <div class="question-block">
+      <div class="question-text"><span class="question-num">${i+1}.</span> ${q.q}</div>
+      <div class="mcq-options">
+        ${q.opts.map((o,j) => `
+          <div class="mcq-option" id="mcq-${i}-${j}" onclick="selectMCQ(${i},${j})">
+            <input type="radio" name="mcq${i}" value="${j}" id="mcqr-${i}-${j}">
+            <label for="mcqr-${i}-${j}"><strong>${String.fromCharCode(65+j)}.</strong> ${o}</label>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function selectMCQ(q, opt) {
+  document.querySelectorAll(`[id^="mcq-${q}-"]`).forEach(el => el.classList.remove('selected'));
+  document.getElementById(`mcq-${q}-${opt}`).classList.add('selected');
+  document.getElementById(`mcqr-${q}-${opt}`).checked = true;
+  updateProgress();
+}
+
+function renderTF() {
+  document.getElementById('tf-container').innerHTML = TF.map((q,i) => `
+    <div class="question-block">
+      <div class="question-text"><span class="question-num">${i+1}.</span> ${q.q}</div>
+      <div class="tf-options">
+        <button class="tf-btn" id="tf-${i}-T" onclick="selectTF(${i},'T')">True</button>
+        <button class="tf-btn" id="tf-${i}-F" onclick="selectTF(${i},'F')">False</button>
+      </div>
+    </div>`).join('');
+}
+
+function selectTF(i, val) {
+  document.getElementById(`tf-${i}-T`).classList.toggle('selected', val==='T');
+  document.getElementById(`tf-${i}-F`).classList.toggle('selected', val==='F');
+  updateProgress();
+}
+
+function renderTheory() {
+  document.getElementById('theory-container').innerHTML = THEORY.map(t => `
+    <div class="question-block">
+      <div class="question-text"><span class="question-num">Question ${t.num.replace('B','')}.</span> <span class="marks-note">(${t.marks} marks)</span><br>${t.q}</div>
+      <textarea class="essay-area" id="essay-${t.num}" rows="6" placeholder="Write your answer here…" oninput="updateProgress()"></textarea>
+    </div>`).join('');
+}
+
+function renderPractical() {
+  document.getElementById('practical-container').innerHTML = `
+    <div class="question-block">
+      <div class="question-text"><span class="question-num">Question 1.</span> <span class="marks-note">(8 marks)</span> PASSAGE STUDY: Read the following passage carefully and answer the questions below.</div>
+      <div class="passage-box">
+        <div class="ref">Romans 3:21–26 (ESV)</div>
+        But now the righteousness of God has been manifested apart from the law, although the Law and the Prophets bear witness to it, the righteousness of God through faith in Jesus Christ for all who believe. For there is no distinction: for all have sinned and fall short of the glory of God, and are justified by his grace as a gift, through the redemption that is in Christ Jesus, whom God put forward as a propitiation by his blood, to be received by faith. This was to show God's righteousness, because in his divine forbearance he had passed over former sins. It was to show his righteousness at the present time, so that he might be just and the justifier of the one who has faith in Jesus.
+      </div>
+      ${PRACTICAL_C1.map(sub => `
+        <div class="sub-question">
+          <div class="sub-label">${sub.sub}) <span class="marks-note">(${sub.marks} marks)</span></div>
+          <div class="question-text">${sub.q}</div>
+          <textarea class="essay-area" id="essay-C1${sub.sub}" rows="4" placeholder="Write your answer here…" oninput="updateProgress()"></textarea>
+        </div>`).join('')}
+    </div>
+    <div class="question-block">
+      <div class="question-text"><span class="question-num">Question 2.</span> <span class="marks-note">(6 marks)</span> BIBLE STUDY METHOD: A fellow student says: 'I just open my Bible randomly each morning, read a few verses, and apply whatever encourages me. That is my Bible study.' Using what you have learned about expository and inductive Bible study, explain what is missing from this approach and what a more faithful method would look like.</div>
+      <textarea class="essay-area" id="essay-C2" rows="8" placeholder="Write your answer here…" oninput="updateProgress()"></textarea>
+    </div>
+    <div class="question-block">
+      <div class="question-text"><span class="question-num">Question 3.</span> <span class="marks-note">(6 marks)</span> TRACING CHRIST THROUGH SCRIPTURE: Choose ONE of the following Old Testament texts and show how it points forward to Jesus Christ, referencing at least one New Testament fulfilment passage.</div>
+      <div style="margin-bottom:0.75rem;font-style:italic;color:var(--ink-light);">Choose ONE: (a) Genesis 3:15 &nbsp;|&nbsp; (b) Isaiah 53:4-6 &nbsp;|&nbsp; (c) Psalm 22:1, 16-18</div>
+      <textarea class="essay-area" id="essay-C3" rows="8" placeholder="State which passage you chose, then write your answer…" oninput="updateProgress()"></textarea>
+    </div>`;
+}
+
+function updateProgress() {
+  const done = MCQ.filter((_,i) => document.querySelector(`input[name="mcq${i}"]:checked`)).length
+             + TF.filter((_,i) => document.querySelector(`#tf-${i}-T.selected,#tf-${i}-F.selected`)).length;
+  const fill = document.getElementById('progress-fill');
+  if (fill) fill.style.width = Math.round(done/(MCQ.length+TF.length)*100)+'%';
+}
+
+// ─────────────────────────────────────────
+// SUBMIT
+// ─────────────────────────────────────────
+async function submitExam() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { showToast('Please enter your name before submitting.','error'); return; }
+
+  const mcqAnswers = MCQ.map((_,i) => { const c = document.querySelector(`input[name="mcq${i}"]:checked`); return c ? parseInt(c.value) : null; });
+  const tfAnswers = TF.map((_,i) => {
+    if (document.getElementById(`tf-${i}-T`).classList.contains('selected')) return true;
+    if (document.getElementById(`tf-${i}-F`).classList.contains('selected')) return false;
+    return null;
+  });
+
+  let sectionAScore = 0;
+  mcqAnswers.forEach((a,i) => { if (a === MCQ[i].ans) sectionAScore += 2; });
+  tfAnswers.forEach((a,i) => { if (a === TF[i].ans) sectionAScore += 1; });
+
+  const essays = {};
+  THEORY.forEach(t => { essays[t.num] = document.getElementById('essay-'+t.num)?.value || ''; });
+  PRACTICAL_C1.forEach(sub => { essays['C1'+sub.sub] = document.getElementById('essay-C1'+sub.sub)?.value || ''; });
+  essays['C2'] = document.getElementById('essay-C2')?.value || '';
+  essays['C3'] = document.getElementById('essay-C3')?.value || '';
+
+  const row = {
+    id: Date.now().toString(),
+    name,
+    date: new Date().toISOString(),
+    mcq_answers: mcqAnswers,
+    tf_answers: tfAnswers,
+    essays,
+    section_a_score: sectionAScore,
+    section_b_score: null,
+    section_c_score: null,
+    total_score: null,
+    grades_by_question: {},
+    feedback: {},
+    graded: false
+  };
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  showLoading('Submitting your exam…');
+  try {
+    await dbInsert(row);
+    hideLoading();
+    showToast(`Submitted! Your Section A score: ${sectionAScore}/50. Check back later for full results.`, 'success');
+    setTimeout(() => goTo('screen-landing'), 2500);
+  } catch(e) {
+    hideLoading();
+    btn.disabled = false; btn.textContent = 'Submit Examination';
+    showToast('Submission failed. Please check your connection and try again.', 'error');
+    console.error(e);
+  }
+}
+
+// ─────────────────────────────────────────
+// TEACHER
+// ─────────────────────────────────────────
+function teacherLogin() {
+  if (document.getElementById('teacher-password').value === TEACHER_PASSWORD) {
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('teacher-password').value = '';
+    goTo('screen-teacher-dashboard');
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+function switchTab(tab) {
+  teacherTab = tab;
+  document.getElementById('tab-ungraded').classList.toggle('active', tab==='ungraded');
+  document.getElementById('tab-graded').classList.toggle('active', tab==='graded');
+  renderDashboard();
+}
+
+async function renderDashboard() {
+  const list = document.getElementById('submissions-list');
+  list.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+  showLoading('Loading submissions…');
+  try {
+    const all = await dbGetAll();
+    hideLoading();
+    const filtered = all.filter(s => teacherTab === 'ungraded' ? !s.graded : s.graded);
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state"><div class="big-icon">📭</div><p>No ${teacherTab} submissions.</p></div>`;
+      return;
+    }
+    list.innerHTML = filtered.map(s => `
+      <div class="submission-card">
+        <div class="student-info">
+          <h3>${s.name}</h3>
+          <p>Submitted: ${new Date(s.date).toLocaleString()} · Section A: ${s.section_a_score}/50</p>
+        </div>
+        ${s.graded ? `<span class="score-pill graded">Total: ${s.total_score}/100</span>` : `<span class="score-pill pending">Pending marking</span>`}
+        <button class="btn-grade" onclick="openGrading('${s.id}')">${s.graded ? 'Review / Edit' : 'Mark Now'}</button>
+      </div>`).join('');
+  } catch(e) {
+    hideLoading();
+    list.innerHTML = `<div class="empty-state"><p>Could not load submissions. Check connection.</p></div>`;
+    console.error(e);
+  }
+}
+
+async function openGrading(id) {
+  showLoading('Loading submission…');
+  let s;
+  try {
+    const all = await dbGetAll();
+    s = all.find(x => x.id === id);
+    hideLoading();
+  } catch(e) { hideLoading(); showToast('Failed to load submission.','error'); return; }
+  if (!s) return;
+  currentGradingId = id;
+
+  const mcqRows = MCQ.map((q,i) => {
+    const given = s.mcq_answers[i];
+    const correct = given === q.ans;
+    return `<div class="grade-row">
+      <div class="q-text"><strong>MCQ ${i+1}:</strong> ${q.q}
+        <div class="student-answer">Answered: ${given !== null ? q.opts[given] : '(no answer)'}</div>
+        <span class="auto-result ${correct?'correct':'incorrect'}">${correct?'✓ Correct (2 marks)':'✗ Incorrect (0 marks)'}</span>
+      </div></div>`;
+  }).join('');
+
+  const tfRows = TF.map((q,i) => {
+    const given = s.tf_answers[i];
+    const correct = given === q.ans;
+    return `<div class="grade-row">
+      <div class="q-text"><strong>T/F ${i+1}:</strong> ${q.q}
+        <div class="student-answer">Answered: ${given === null ? '(no answer)' : (given ? 'True' : 'False')}</div>
+        <span class="auto-result ${correct?'correct':'incorrect'}">${correct?'✓ Correct (1 mark)':'✗ Incorrect (0 marks)'}</span>
+      </div></div>`;
+  }).join('');
+
+  const theoryRows = THEORY.map(t => `
+    <div class="grade-row">
+      <div class="q-text"><strong>${t.num}.</strong> ${t.q}
+        <div class="student-answer">${s.essays[t.num] || '<em>(no answer)</em>'}</div>
+        <textarea class="feedback-area" id="fb-${t.num}" placeholder="Feedback (optional)">${(s.feedback||{})[t.num]||''}</textarea>
+      </div>
+      <div class="mark-input-group">
+        <label>Marks</label>
+        <input class="mark-input" type="number" min="0" max="${t.marks}" step="0.5" id="grade-${t.num}" value="${(s.grades_by_question||{})[t.num]??''}">
+        <span class="max-marks">/ ${t.marks}</span>
+      </div>
+    </div>`).join('');
+
+  const c1Rows = PRACTICAL_C1.map(sub => `
+    <div class="grade-row">
+      <div class="q-text"><strong>C1${sub.sub}.</strong> ${sub.q}
+        <div class="student-answer">${s.essays['C1'+sub.sub] || '<em>(no answer)</em>'}</div>
+        <textarea class="feedback-area" id="fb-C1${sub.sub}" placeholder="Feedback (optional)">${(s.feedback||{})['C1'+sub.sub]||''}</textarea>
+      </div>
+      <div class="mark-input-group">
+        <label>Marks</label>
+        <input class="mark-input" type="number" min="0" max="${sub.marks}" step="0.5" id="grade-C1${sub.sub}" value="${(s.grades_by_question||{})['C1'+sub.sub]??''}">
+        <span class="max-marks">/ ${sub.marks}</span>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('grading-content').innerHTML = `
+    <div class="exam-meta-card" style="grid-template-columns:1fr 1fr">
+      <div class="meta-field"><label>Student</label><input type="text" value="${s.name}" readonly></div>
+      <div class="meta-field"><label>Section A (auto)</label><input type="text" value="${s.section_a_score} / 50" readonly></div>
+    </div>
+    <div class="total-score-bar">
+      <span class="label">Running Total</span>
+      <span class="score-display" id="running-total">${s.total_score !== null ? s.total_score : '—'} / 100</span>
+    </div>
+    <div class="grading-section"><h3>Section A — Multiple Choice (Auto-graded)</h3>${mcqRows}</div>
+    <div class="grading-section"><h3>Section A — True / False (Auto-graded)</h3>${tfRows}</div>
+    <div class="grading-section"><h3>Section B — Theory (Mark manually)</h3>${theoryRows}</div>
+    <div class="grading-section"><h3>Section C — Practical Q1 (Mark manually)</h3>${c1Rows}</div>
+    <div class="grading-section">
+      <h3>Section C — Q2: Bible Study Method (6 marks)</h3>
+      <div class="grade-row">
+        <div class="q-text">
+          <div class="student-answer">${s.essays['C2'] || '<em>(no answer)</em>'}</div>
+          <textarea class="feedback-area" id="fb-C2" placeholder="Feedback (optional)">${(s.feedback||{})['C2']||''}</textarea>
+        </div>
+        <div class="mark-input-group">
+          <label>Marks</label>
+          <input class="mark-input" type="number" min="0" max="6" step="0.5" id="grade-C2" value="${(s.grades_by_question||{})['C2']??''}">
+          <span class="max-marks">/ 6</span>
+        </div>
+      </div>
+    </div>
+    <div class="grading-section">
+      <h3>Section C — Q3: Tracing Christ (6 marks)</h3>
+      <div class="grade-row">
+        <div class="q-text">
+          <div class="student-answer">${s.essays['C3'] || '<em>(no answer)</em>'}</div>
+          <textarea class="feedback-area" id="fb-C3" placeholder="Feedback (optional)">${(s.feedback||{})['C3']||''}</textarea>
+        </div>
+        <div class="mark-input-group">
+          <label>Marks</label>
+          <input class="mark-input" type="number" min="0" max="6" step="0.5" id="grade-C3" value="${(s.grades_by_question||{})['C3']??''}">
+          <span class="max-marks">/ 6</span>
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.mark-input').forEach(inp => inp.addEventListener('input', updateRunningTotal));
+  updateRunningTotal();
+  goTo('screen-grading');
+}
+
+function updateRunningTotal() {
+  const sectionA = parseInt(document.querySelector('#grading-content input[value$="/ 50"]')?.value) || 0;
+  // get it from stored data instead
+  const keys = [...THEORY.map(t=>t.num), ...PRACTICAL_C1.map(s=>'C1'+s.sub), 'C2','C3'];
+  let manual = 0;
+  keys.forEach(k => { manual += parseFloat(document.getElementById('grade-'+k)?.value||'0') || 0; });
+  // We need section_a_score — store it on a hidden element
+  const saEl = document.getElementById('hidden-sa-score');
+  const sa = saEl ? parseInt(saEl.value) : 0;
+  document.getElementById('running-total').textContent = (sa + manual) + ' / 100';
+}
+
+async function saveGrades() {
+  // Re-fetch to get section_a_score
+  showLoading('Saving grades…');
+  let s;
+  try {
+    const all = await dbGetAll();
+    s = all.find(x => x.id === currentGradingId);
+  } catch(e) { hideLoading(); showToast('Failed. Try again.','error'); return; }
+
+  let sectionB = 0, sectionC = 0;
+  const grades = {}, feedback = {};
+
+  THEORY.forEach(t => {
+    const v = parseFloat(document.getElementById('grade-'+t.num)?.value||'0') || 0;
+    grades[t.num] = v; sectionB += v;
+    feedback[t.num] = document.getElementById('fb-'+t.num)?.value || '';
+  });
+  PRACTICAL_C1.forEach(sub => {
+    const v = parseFloat(document.getElementById('grade-C1'+sub.sub)?.value||'0') || 0;
+    grades['C1'+sub.sub] = v; sectionC += v;
+    feedback['C1'+sub.sub] = document.getElementById('fb-C1'+sub.sub)?.value || '';
+  });
+  ['C2','C3'].forEach(k => {
+    const v = parseFloat(document.getElementById('grade-'+k)?.value||'0') || 0;
+    grades[k] = v; sectionC += v;
+    feedback[k] = document.getElementById('fb-'+k)?.value || '';
+  });
+
+  const total = s.section_a_score + sectionB + sectionC;
+  try {
+    await dbUpdate(currentGradingId, {
+      section_b_score: sectionB,
+      section_c_score: sectionC,
+      total_score: total,
+      grades_by_question: grades,
+      feedback,
+      graded: true
+    });
+    hideLoading();
+    showToast(`Grades published! Total: ${total}/100`, 'success');
+    setTimeout(() => goTo('screen-teacher-dashboard'), 1500);
+  } catch(e) {
+    hideLoading();
+    showToast('Failed to save grades. Try again.', 'error');
+    console.error(e);
+  }
+}
+
+// ─────────────────────────────────────────
+// RESULTS
+// ─────────────────────────────────────────
+async function lookupResults() {
+  const name = document.getElementById('lookup-name').value.trim();
+  if (!name) return;
+  showLoading('Looking up your results…');
+  try {
+    const rows = await dbGetByName(name);
+    hideLoading();
+    if (!rows.length) {
+      document.getElementById('lookup-error').style.display = 'block';
+      return;
+    }
+    document.getElementById('lookup-error').style.display = 'none';
+    renderResults(rows[0]);
+    goTo('screen-results-view');
+  } catch(e) {
+    hideLoading();
+    showToast('Could not retrieve results. Try again.','error');
+    console.error(e);
+  }
+}
+
+function getGrade(score) {
+  if (score >= 70) return {letter:'A', cls:'grade-A'};
+  if (score >= 60) return {letter:'B', cls:'grade-B'};
+  if (score >= 50) return {letter:'C', cls:'grade-C'};
+  return {letter:'F', cls:'grade-F'};
+}
+
+function renderResults(s) {
+  if (!s.graded) {
+    document.getElementById('results-content').innerHTML = `
+      <div class="pending-notice">
+        <h3>Results Pending</h3>
+        <p>Your exam has been received. Section A: <strong>${s.section_a_score}/50</strong>.<br>
+        Your instructor is marking Sections B and C. Please check back soon.</p>
+      </div>
+      <div class="soli-deo">Soli Deo Gloria</div>`;
+    return;
+  }
+  const grade = getGrade(s.total_score);
+  const fbKeys = [
+    ...THEORY.map(t => ({key:t.num, label:'Section B Q'+t.num.replace('B',''), max:t.marks})),
+    ...PRACTICAL_C1.map(sub => ({key:'C1'+sub.sub, label:'Section C Q1'+sub.sub, max:sub.marks})),
+    {key:'C2', label:'Section C Q2', max:6},
+    {key:'C3', label:'Section C Q3', max:6}
+  ];
+  const fbHtml = fbKeys
+    .filter(({key}) => s.feedback?.[key])
+    .map(({key,label,max}) => `
+      <div class="feedback-item">
+        <div class="q-ref">${label} · ${s.grades_by_question?.[key]??0}/${max}</div>
+        <div class="fb-text">${s.feedback[key]}</div>
+      </div>`).join('');
+
+  document.getElementById('results-content').innerHTML = `
+    <div class="results-hero">
+      <h2>${s.name}</h2>
+      <div class="score-big">${s.total_score}</div>
+      <div class="score-label">out of 100 marks</div>
+      <div class="grade-badge ${grade.cls}">Grade ${grade.letter}</div>
+    </div>
+    <div class="results-breakdown">
+      <div class="breakdown-card"><div class="section-name">Section A</div><div class="section-score">${s.section_a_score}</div><div class="section-max">/ 50 marks</div></div>
+      <div class="breakdown-card"><div class="section-name">Section B</div><div class="section-score">${s.section_b_score}</div><div class="section-max">/ 30 marks</div></div>
+      <div class="breakdown-card"><div class="section-name">Section C</div><div class="section-score">${s.section_c_score}</div><div class="section-max">/ 20 marks</div></div>
+    </div>
+    ${fbHtml ? `<div class="feedback-section"><h3>Instructor Feedback</h3>${fbHtml}</div>` : ''}
+    <div class="soli-deo">Soli Deo Gloria</div>`;
+}
+</script>
+</body>
+</html>
